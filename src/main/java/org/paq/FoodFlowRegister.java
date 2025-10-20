@@ -1,7 +1,8 @@
-package paq;
+package org.paq;
 
 import javax.swing.*;
 import javax.swing.border.*;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
@@ -16,9 +17,11 @@ import java.util.regex.Pattern;
 
 /**
  * Pantalla de Registro con lógica completa (validación + POST).
- * Estilo visual consistente con FoodFlowLogin.
  */
 public class FoodFlowRegister extends JFrame {
+
+    // URL de la API (Ajustado al puerto 8081)
+    private static final String API_REGISTER_URL = "http://localhost:8081/api/auth/register";
 
     // Paleta
     private static final Color COLOR_VERDE     = new Color(34, 139, 34);
@@ -27,7 +30,7 @@ public class FoodFlowRegister extends JFrame {
     private static final Color COLOR_BORDE     = new Color(200, 200, 200);
     private static final Color COLOR_BORDE_FOC = new Color(34, 139, 34);
 
-    // Fonts (Inter si está disponible; fallback SansSerif)
+    // Fonts
     private static Font FONT_TITULO;
     private static Font FONT_NORMAL;
     private static Font FONT_LOGO;
@@ -49,13 +52,13 @@ public class FoodFlowRegister extends JFrame {
         }
     }
 
-    // HTTP
+    // HTTP Client
     private final HttpClient http = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    // Campos
+    // Campos de la UI
     private PlaceholderField     fNombre;
     private PlaceholderField     fApellido;
     private PlaceholderField     fCodigoEmpresa;
@@ -74,7 +77,7 @@ public class FoodFlowRegister extends JFrame {
         getContentPane().setBackground(COLOR_FONDO);
         setLayout(new BorderLayout());
 
-        // Header con logo
+        // Header
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(COLOR_FONDO);
         header.setBorder(new EmptyBorder(20, 20, 0, 40));
@@ -99,7 +102,7 @@ public class FoodFlowRegister extends JFrame {
         title.setBorder(new EmptyBorder(10, 0, 24, 0));
         col.add(title);
 
-        // Inputs (como tu Figma)
+        // Inputs
         fNombre        = new PlaceholderField("Ingresa tu nombre");
         fApellido      = new PlaceholderField("Ingresa tu apellido");
         fCodigoEmpresa = new PlaceholderField("Agrega tu código de empresa");
@@ -120,7 +123,7 @@ public class FoodFlowRegister extends JFrame {
         col.add(new RoundedInput(fPass2,         IconLabel.lock()));
         col.add(Box.createVerticalStrut(16));
 
-        // Checkbox términos
+        // Checkbox
         chkTerminos = new JCheckBox("Estoy de acuerdo con los términos de uso");
         chkTerminos.setOpaque(false);
         chkTerminos.setFont(FONT_NORMAL);
@@ -138,7 +141,7 @@ public class FoodFlowRegister extends JFrame {
 
         col.add(Box.createVerticalStrut(24));
 
-        // Link a Login (👉 aquí se vincula con tu pantalla de inicio de sesión)
+        // Link a Login
         JPanel loginRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
         loginRow.setBackground(COLOR_FONDO);
         JLabel lbl = new JLabel("Ya tengo cuenta");
@@ -148,7 +151,6 @@ public class FoodFlowRegister extends JFrame {
         toLogin.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 dispose();
-                // Abre tu frame de login. Usa tu clase real si el nombre difiere.
                 new FoodFlowLogin().setVisible(true);
             }
         });
@@ -162,10 +164,9 @@ public class FoodFlowRegister extends JFrame {
         centerWrap.add(col, gbc);
     }
 
-    /* ===================== LÓGICA ===================== */
+    /* ===================== LÓGICA DE REGISTRO ===================== */
 
     private void tryRegister() {
-        // Lectura
         String nombre   = fNombre.getRealText();
         String apellido = fApellido.getRealText();
         String codigo   = fCodigoEmpresa.getRealText();
@@ -173,7 +174,7 @@ public class FoodFlowRegister extends JFrame {
         String pass1    = fPass1.getRealText();
         String pass2    = fPass2.getRealText();
 
-        // Validaciones
+        // Validaciones locales
         StringBuilder err = new StringBuilder();
         if (nombre.isBlank())   err.append("• Ingresa tu nombre.\n");
         if (apellido.isBlank()) err.append("• Ingresa tu apellido.\n");
@@ -190,13 +191,14 @@ public class FoodFlowRegister extends JFrame {
             return;
         }
 
-        // Deshabilita UI y envía (SwingWorker para no bloquear)
+        // Deshabilita UI y envía
         setFormEnabled(false);
         new SwingWorker<Void, Void>() {
             int status = -1;
             String bodyResp = null;
             @Override protected Void doInBackground() {
                 try {
+                    // JSON ajustado para incluir todos los campos requeridos por el backend
                     String json = String.format(
                             "{\"name\":\"%s\",\"lastName\":\"%s\",\"companyCode\":\"%s\",\"email\":\"%s\",\"password\":\"%s\"}",
                             escapeJson(nombre), escapeJson(apellido), escapeJson(codigo),
@@ -204,7 +206,7 @@ public class FoodFlowRegister extends JFrame {
                     );
 
                     HttpRequest req = HttpRequest.newBuilder()
-                            .uri(URI.create("http://localhost:8080/api/auth/register")) // <--- tu endpoint
+                            .uri(URI.create(API_REGISTER_URL)) // Usando 8081
                             .header("Content-Type", "application/json")
                             .POST(HttpRequest.BodyPublishers.ofString(json))
                             .timeout(Duration.ofSeconds(15))
@@ -214,7 +216,7 @@ public class FoodFlowRegister extends JFrame {
                     status = resp.statusCode();
                     bodyResp = resp.body();
                 } catch (IOException | InterruptedException ex) {
-                    bodyResp = "No se pudo conectar con el servidor.\n" + ex.getMessage();
+                    bodyResp = "No se pudo conectar con el servidor (Verifique el puerto 8081).\n" + ex.getMessage();
                     status = -1;
                 }
                 return null;
@@ -227,13 +229,18 @@ public class FoodFlowRegister extends JFrame {
                             "¡Cuenta creada con éxito! Ahora puedes iniciar sesión.",
                             "Registro exitoso", JOptionPane.INFORMATION_MESSAGE);
                     dispose();
-                    new FoodFlowLogin().setVisible(true); // redirigir al login
+                    new FoodFlowLogin().setVisible(true);
+                } else if (status == 400) {
+                    String msg = "Error: El correo electrónico ya está registrado.";
+                    if (bodyResp != null && !bodyResp.isBlank()) msg += "\nDetalle: " + bodyResp;
+                    JOptionPane.showMessageDialog(FoodFlowRegister.this, msg,
+                            "Fallo de Registro", JOptionPane.ERROR_MESSAGE);
                 } else if (status == -1) {
                     JOptionPane.showMessageDialog(FoodFlowRegister.this, bodyResp,
                             "Error de conexión", JOptionPane.ERROR_MESSAGE);
                 } else {
-                    String msg = "Error " + status;
-                    if (bodyResp != null && !bodyResp.isBlank()) msg += "\n" + bodyResp;
+                    String msg = "Error inesperado del servidor: " + status;
+                    if (bodyResp != null && !bodyResp.isBlank()) msg += "\nDetalle: " + bodyResp;
                     JOptionPane.showMessageDialog(FoodFlowRegister.this, msg,
                             "Error en el registro", JOptionPane.ERROR_MESSAGE);
                 }
@@ -262,12 +269,12 @@ public class FoodFlowRegister extends JFrame {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
-    /* ===================== UI HELPERS ===================== */
+    /* ===================== UI HELPERS Y CLASES INTERNAS ===================== */
 
     private void loadLogo(JLabel target) {
         try {
-            URL img = FoodFlowRegister.class.getResource("Food1.png");
-            if (img == null) img = FoodFlowRegister.class.getResource("/paq/Food1.png");
+            URL img = FoodFlowRegister.class.getResource("/ima/Food1.png");
+            if (img == null) img = FoodFlowRegister.class.getResource("/ima/Food1.png");
             if (img != null) {
                 ImageIcon icon = new ImageIcon(img);
                 int w = (int)(icon.getIconWidth() * 0.8);
@@ -286,7 +293,6 @@ public class FoodFlowRegister extends JFrame {
         }
     }
 
-    /** Contenedor con borde redondo e icono a la izquierda */
     private class RoundedInput extends JPanel {
         private static final long serialVersionUID = 1L;
         private final JComponent inner;
@@ -330,7 +336,6 @@ public class FoodFlowRegister extends JFrame {
         }
     }
 
-    /** Botón redondeado */
     private class RoundedButton extends JButton {
         private static final long serialVersionUID = 1L;
         RoundedButton(String text) {
@@ -363,7 +368,6 @@ public class FoodFlowRegister extends JFrame {
         @Override public void setBorderPainted(boolean b) {}
     }
 
-    /** Link label */
     public static class LinkLabel extends JLabel {
         private static final long serialVersionUID = 1L;
         LinkLabel(String text) {
@@ -378,35 +382,33 @@ public class FoodFlowRegister extends JFrame {
         }
     }
 
-    /** Iconos simples */
     private static class IconLabel {
         static JLabel user() {
-            JLabel l = new JLabel("\uD83D\uDC64"); // bust in silhouette
+            JLabel l = new JLabel("\uD83D\uDC64");
             l.setFont(FONT_NORMAL.deriveFont(18f));
             l.setForeground(COLOR_GRIS_TXT);
             return l;
         }
         static JLabel id() {
-            JLabel l = new JLabel("\uD83C\uDD94"); // ID button
+            JLabel l = new JLabel("\uD83C\uDD94");
             l.setFont(FONT_NORMAL.deriveFont(18f));
             l.setForeground(COLOR_GRIS_TXT);
             return l;
         }
         static JLabel mail() {
-            JLabel l = new JLabel("\uD83D\uDCE7"); // email
+            JLabel l = new JLabel("\uD83D\uDCE7");
             l.setFont(FONT_NORMAL.deriveFont(18f));
             l.setForeground(COLOR_GRIS_TXT);
             return l;
         }
         static JLabel lock() {
-            JLabel l = new JLabel("\uD83D\uDD12"); // lock
+            JLabel l = new JLabel("\uD83D\uDD12");
             l.setFont(FONT_NORMAL.deriveFont(18f));
             l.setForeground(COLOR_GRIS_TXT);
             return l;
         }
     }
 
-    /** TextField con placeholder */
     private static class PlaceholderField extends JTextField {
         private final String placeholder;
         PlaceholderField(String ph) {
@@ -432,7 +434,6 @@ public class FoodFlowRegister extends JFrame {
         }
     }
 
-    /** Password con placeholder (sin bullets hasta escribir) */
     private static class PlaceholderPassword extends JPasswordField {
         private final String placeholder;
         private boolean hasText = false;
@@ -468,7 +469,7 @@ public class FoodFlowRegister extends JFrame {
         }
     }
 
-    /* ===================== MAIN (preview) ===================== */
+    /* ===================== MAIN ===================== */
     public static void main(String[] args) {
         try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ignored) {}
         SwingUtilities.invokeLater(() -> new FoodFlowRegister().setVisible(true));

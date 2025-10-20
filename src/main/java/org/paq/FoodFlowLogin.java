@@ -1,9 +1,7 @@
-package paq;
+package org.paq;
 
 import javax.swing.*;
 import javax.swing.border.*;
-
-import paq.FoodFlowRegister.LinkLabel;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -21,23 +19,21 @@ import java.time.Duration;
  */
 public class FoodFlowLogin extends JFrame {
 
-    // Paleta
+    // Paleta (sin cambios)
     private static final Color COLOR_VERDE     = new Color(34, 139, 34);
     private static final Color COLOR_GRIS_TXT  = new Color(150, 150, 150);
     private static final Color COLOR_FONDO     = Color.WHITE;
     private static final Color COLOR_BORDE     = new Color(200, 200, 200);
     private static final Color COLOR_BORDE_FOC = new Color(34, 139, 34);
 
-    // Tipos (Inter con fallbacks)
+    // Tipos (sin cambios)
     private static Font FONT_TITULO;
     private static Font FONT_NORMAL;
     private static Font FONT_LOGO;
 
     static {
-        // Intenta registrar Inter desde recursos; si no, usa SansSerif
+        // ... (bloque static con configuración de fuentes)
         try {
-            // Coloca estos ttf en resources/fonts/
-            // Inter-Regular.ttf  e  Inter-Bold.ttf
             GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
             URL reg = FoodFlowLogin.class.getResource("/fonts/Inter-Regular.ttf");
             URL bold = FoodFlowLogin.class.getResource("/fonts/Inter-Bold.ttf");
@@ -57,10 +53,14 @@ public class FoodFlowLogin extends JFrame {
     // HTTP client
     private final HttpClient httpClient;
 
+    // URL de la API: Ajustada al puerto 8081 de tu backend
+    private static final String API_LOGIN_URL = "http://localhost:8081/api/auth/login";
+
     public FoodFlowLogin() {
         super("Inicio de sesión");
+        // ... (configuración básica del JFrame)
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1110, 760); // tamaño cercano al canvas de tu captura
+        setSize(1110, 760);
         setLocationRelativeTo(null);
         setResizable(false);
         getContentPane().setBackground(COLOR_FONDO);
@@ -72,17 +72,17 @@ public class FoodFlowLogin extends JFrame {
 
         setLayout(new BorderLayout());
 
-        // Header con logo (arriba derecha)
+        // ... (construcción de la UI: logo, campos, botones)
+
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(COLOR_FONDO);
         header.setBorder(new EmptyBorder(20, 20, 0, 40));
         JLabel logo = new JLabel();
         logo.setHorizontalAlignment(SwingConstants.RIGHT);
-        loadLogo(logo); // intenta cargar Food1.png
+        loadLogo(logo);
         header.add(logo, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
-        // Columna central
         JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setBackground(COLOR_FONDO);
         add(centerWrap, BorderLayout.CENTER);
@@ -97,7 +97,6 @@ public class FoodFlowLogin extends JFrame {
         title.setBorder(new EmptyBorder(10, 0, 30, 0));
         col.add(title);
 
-        // Campos
         PlaceholderField email = new PlaceholderField("Correo electrónico");
         RoundedInput emailInput = new RoundedInput(email, IconLabel.mail());
 
@@ -109,7 +108,6 @@ public class FoodFlowLogin extends JFrame {
         col.add(passInput);
         col.add(Box.createVerticalStrut(8));
 
-        // Links
         JPanel links = new JPanel(new FlowLayout(FlowLayout.CENTER, 24, 0));
         links.setBackground(COLOR_FONDO);
         LinkLabel forgot = new LinkLabel("Olvidé la contraseña");
@@ -120,7 +118,7 @@ public class FoodFlowLogin extends JFrame {
         col.add(links);
         col.add(Box.createVerticalStrut(24));
 
-        // Botón Entrar
+        // Botón Entrar (Action Listener actualizado)
         JButton btn = new RoundedButton("Entrar");
         btn.setPreferredSize(new Dimension(520, 48));
         btn.setMaximumSize(new Dimension(520, 48));
@@ -149,7 +147,6 @@ public class FoodFlowLogin extends JFrame {
         registro.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 dispose();
-                // Abre tu frame de login. Usa tu clase real si el nombre difiere.
                 new FoodFlowRegister().setVisible(true);
             }
         });
@@ -158,48 +155,57 @@ public class FoodFlowLogin extends JFrame {
         reg.setAlignmentX(Component.CENTER_ALIGNMENT);
         col.add(reg);
 
-        // Centrado
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = 0;
         centerWrap.add(col, gbc);
     }
 
-    // === HTTP ===
     private void handleLogin(String email, String password) {
         try {
             String body = String.format("{\"email\":\"%s\",\"password\":\"%s\"}", email, password);
             HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/auth/login")) // <-- tu backend
+                    .uri(URI.create(API_LOGIN_URL)) // <-- URL ajustada (8081)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
 
             HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+
+            // Manejo de códigos de estado específicos:
             if (resp.statusCode() == 200) {
-                JOptionPane.showMessageDialog(this, "¡Inicio de sesión exitoso!", "Éxito",
+                // El backend devuelve 200 OK y el mensaje de éxito
+                String mensajeExito = resp.body().replace("\"", ""); // Limpiar comillas si devuelve solo el string
+                JOptionPane.showMessageDialog(this, "¡Inicio de sesión exitoso!\n" + mensajeExito, "Éxito",
                         JOptionPane.INFORMATION_MESSAGE);
+            } else if (resp.statusCode() == 401) {
+                // 401 UNATHORIZED: Credenciales incorrectas (según tu AuthController)
+                JOptionPane.showMessageDialog(this, "Correo o contraseña incorrectos. Intenta de nuevo.",
+                        "Error de Credenciales", JOptionPane.WARNING_MESSAGE);
             } else {
+                // Otros errores (500 interno, 400 Bad Request)
                 String msg = "Error: " + resp.statusCode();
                 if (resp.body() != null && !resp.body().isBlank()) msg += "\n" + resp.body();
                 JOptionPane.showMessageDialog(this, msg, "Error de autenticación",
                         JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException | InterruptedException ex) {
-            JOptionPane.showMessageDialog(this, "No se pudo conectar con el servidor.\n" + ex.getMessage(),
+            JOptionPane.showMessageDialog(this, "No se pudo conectar con el servidor (¿Está corriendo el backend?).\n" + ex.getMessage(),
                     "Error de conexión", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     // === Utilidades UI ===
     private void loadLogo(JLabel target) {
+        // ... (código loadLogo sin cambios)
         try {
-            URL img = FoodFlowLogin.class.getResource("Food1.png");
-            if (img == null) img = FoodFlowLogin.class.getResource("/paq/Food1.png");
+            URL img = FoodFlowLogin.class.getResource("ima/Food1.png");
+            if (img == null) {
+                img = FoodFlowLogin.class.getResource("/ima/Food1.png");
+            }
             if (img != null) {
                 ImageIcon icon = new ImageIcon(img);
-                // Escala suave (ajusta a tu tamaño deseado)
-                int w = (int)(icon.getIconWidth() * 0.8);
-                int h = (int)(icon.getIconHeight() * 0.8);
+                int w = (int) (icon.getIconWidth() * 0.8);
+                int h = (int) (icon.getIconHeight() * 0.8);
                 Image scaled = icon.getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 target.setIcon(new ImageIcon(scaled));
             } else {
@@ -214,13 +220,23 @@ public class FoodFlowLogin extends JFrame {
         }
     }
 
-    /** Panel de input con borde redondo e icono a la izquierda */
+    // ... (clases internas RoundedInput, RoundedButton, LinkLabel, IconLabel, PlaceholderField, PlaceholderPassword sin cambios)
+
+    // Todas las clases internas y el Main siguen iguales.
+
+    // Main
+    public static void main(String[] args) {
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ignored) {}
+        SwingUtilities.invokeLater(() -> new FoodFlowLogin().setVisible(true));
+    }
+
+    // [Todas las clases internas RoundedInput, RoundedButton, LinkLabel, IconLabel, PlaceholderField, PlaceholderPassword irían aquí, sin cambios.]
+
     private class RoundedInput extends JPanel {
         /**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-		private final JComponent inner;
+         * */
+        private static final long serialVersionUID = 1L;
+        private final JComponent inner;
         private final JLabel icon;
         private boolean focused = false;
 
@@ -237,11 +253,10 @@ public class FoodFlowLogin extends JFrame {
 
             JPanel box = new JPanel(new BorderLayout(12, 0)) {
                 /**
-				 * 
-				 */
-				private static final long serialVersionUID = 1L;
+                 * */
+                private static final long serialVersionUID = 1L;
 
-				@Override
+                @Override
                 protected void paintComponent(Graphics g) {
                     super.paintComponent(g);
                     Graphics2D g2 = (Graphics2D) g.create();
@@ -267,13 +282,11 @@ public class FoodFlowLogin extends JFrame {
         }
     }
 
-    /** Botón redondeado estilo Figma */
     private class RoundedButton extends JButton {
         /**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-		RoundedButton(String text) {
+         * */
+        private static final long serialVersionUID = 1L;
+        RoundedButton(String text) {
             super(text);
             setFont(FONT_NORMAL.deriveFont(Font.BOLD));
             setForeground(Color.WHITE);
@@ -312,14 +325,12 @@ public class FoodFlowLogin extends JFrame {
         @Override public void setBorderPainted(boolean b) { /* noop */ }
     }
 
-    /** Label con estilo link */
     private static class LinkLabel extends JLabel {
         /**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
+         * */
+        private static final long serialVersionUID = 1L;
 
-		LinkLabel(String text) {
+        LinkLabel(String text) {
             super(text);
             setFont(FONT_NORMAL.deriveFont(Font.BOLD));
             setForeground(COLOR_VERDE);
@@ -335,7 +346,6 @@ public class FoodFlowLogin extends JFrame {
         }
     }
 
-    /** Iconos simples (puedes reemplazar por SVG/PNG si lo prefieres) */
     private static class IconLabel {
         static JLabel mail() {
             JLabel l = new JLabel("\uD83D\uDCE7"); // sobre
@@ -351,7 +361,6 @@ public class FoodFlowLogin extends JFrame {
         }
     }
 
-    /** TextField con placeholder real */
     private static class PlaceholderField extends JTextField {
         private final String placeholder;
         PlaceholderField(String ph) {
@@ -378,7 +387,6 @@ public class FoodFlowLogin extends JFrame {
         }
     }
 
-    /** PasswordField con placeholder sin bullets hasta escribir */
     private static class PlaceholderPassword extends JPasswordField {
         private final String placeholder;
         private boolean hasText = false;
@@ -414,11 +422,4 @@ public class FoodFlowLogin extends JFrame {
             }
         }
     }
-
-    // Main
-    public static void main(String[] args) {
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ignored) {}
-        SwingUtilities.invokeLater(() -> new FoodFlowLogin().setVisible(true));
-    }
 }
-
