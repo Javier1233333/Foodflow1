@@ -1,4 +1,4 @@
-package paq;
+package org.paq;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -266,8 +266,8 @@ public class FoodFlowRegister extends JFrame {
 
     private void loadLogo(JLabel target) {
         try {
-            URL img = FoodFlowRegister.class.getResource("Food1.png");
-            if (img == null) img = FoodFlowRegister.class.getResource("/paq/Food1.png");
+            URL img = FoodFlowRegister.class.getResource("/ima/Food1.png");
+            if (img == null) img = FoodFlowRegister.class.getResource("/ima/Food1.png");
             if (img != null) {
                 ImageIcon icon = new ImageIcon(img);
                 int w = (int)(icon.getIconWidth() * 0.8);

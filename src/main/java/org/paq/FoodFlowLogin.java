@@ -1,9 +1,7 @@
-package paq;
+package org.paq;
 
 import javax.swing.*;
 import javax.swing.border.*;
-
-import paq.FoodFlowRegister.LinkLabel;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -193,13 +191,18 @@ public class FoodFlowLogin extends JFrame {
     // === Utilidades UI ===
     private void loadLogo(JLabel target) {
         try {
-            URL img = FoodFlowLogin.class.getResource("Food1.png");
-            if (img == null) img = FoodFlowLogin.class.getResource("/paq/Food1.png");
+            // 1) Primero busca relativo al paquete (org/paq)
+            URL img = FoodFlowLogin.class.getResource("ima/Food1.png");
+
+            // 2) Si no lo encuentra, intenta en resources con path absoluto
+            if (img == null) {
+                img = FoodFlowLogin.class.getResource("/ima/Food1.png");
+            }
+
             if (img != null) {
                 ImageIcon icon = new ImageIcon(img);
-                // Escala suave (ajusta a tu tamaño deseado)
-                int w = (int)(icon.getIconWidth() * 0.8);
-                int h = (int)(icon.getIconHeight() * 0.8);
+                int w = (int) (icon.getIconWidth() * 0.8);
+                int h = (int) (icon.getIconHeight() * 0.8);
                 Image scaled = icon.getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 target.setIcon(new ImageIcon(scaled));
             } else {
