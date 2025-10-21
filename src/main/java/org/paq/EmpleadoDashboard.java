@@ -15,7 +15,7 @@ public class EmpleadoDashboard extends JFrame {
     private final CardLayout cards = new CardLayout();
     private final JPanel mainContentPanel = new JPanel(cards);
 
-    public EmpleadoDashboard() {
+    public EmpleadoDashboard(String userId) {
         super("FoodFlow – Empleado");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
