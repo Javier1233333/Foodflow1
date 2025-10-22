@@ -123,7 +123,7 @@ public class ServerChafa {
         app.get("/api/inventario", ctx -> {
             List<JsonObject> inventario = new ArrayList<>();
             try (Connection con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
-                String sql = "SELECT id, nombre_producto, cantidad FROM Inventario";
+                String sql = "SELECT id, nombre_producto, cantidad, imagen_url FROM Inventario";
                 PreparedStatement stmt = con.prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery();
                 while (rs.next()) {
@@ -131,10 +131,28 @@ public class ServerChafa {
                     item.addProperty("id", rs.getInt("id"));
                     item.addProperty("nombre", rs.getString("nombre_producto"));
                     item.addProperty("cantidad", rs.getInt("cantidad"));
+                    item.addProperty("imagen_url", rs.getString("imagen_url")); // <- AÑADIDO
                     inventario.add(item);
                 }
                 ctx.contentType("application/json").result(gson.toJson(inventario));
             } catch (SQLException e) { e.printStackTrace(); ctx.status(500).result("{\"error\":\"Error en la base de datos\"}"); }
+        });
+        // EN ServerChafa.java - AÑADE este endpoint
+        app.post("/api/inventario/crear", ctx -> {
+            try {
+                JsonObject prod = gson.fromJson(ctx.body(), JsonObject.class);
+                try (Connection con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
+                    String sql = "INSERT INTO Inventario (nombre_producto, cantidad, imagen_url) VALUES (?, ?, ?)";
+                    PreparedStatement stmt = con.prepareStatement(sql);
+                    stmt.setString(1, prod.get("nombre").getAsString());
+                    stmt.setInt(2, prod.get("cantidad").getAsInt());
+                    // Guarda el nombre de la imagen, ej: "mi_foto.png"
+                    stmt.setString(3, prod.get("imagen_url").getAsString());
+
+                    stmt.executeUpdate();
+                    ctx.status(201).result("{\"message\":\"Producto creado\"}");
+                } catch (SQLException e) { e.printStackTrace(); ctx.status(500).result("{\"error\":\"Error en BD al crear producto\"}"); }
+            } catch (Exception e) { e.printStackTrace(); ctx.status(400).result("{\"error\":\"JSON inválido\"}"); }
         });
 
         app.post("/api/inventario/actualizar", ctx -> {
@@ -160,13 +178,12 @@ public class ServerChafa {
             }
         });
 
-        // --- ENDPOINTS PARA ADMIN ---
-
         // Obtener lista de usuarios
         app.get("/api/admin/usuarios", ctx -> {
             List<JsonObject> usuarios = new ArrayList<>();
             try (Connection con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
-                String sql = "SELECT id, nombre, apellidos, email, rol, codigo_empresa FROM Usuarios";
+                // Añadir tarifa_hora a la consulta
+                String sql = "SELECT id, nombre, apellidos, email, rol, codigo_empresa, tarifa_hora FROM Usuarios";
                 PreparedStatement stmt = con.prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery();
                 while (rs.next()) {
@@ -176,24 +193,82 @@ public class ServerChafa {
                     usuario.addProperty("email", rs.getString("email"));
                     usuario.addProperty("rol", rs.getString("rol"));
                     usuario.addProperty("codigo_empresa", rs.getString("codigo_empresa"));
+                    // Añadir la tarifa (manejar posible NULL si no todos tienen tarifa)
+                    usuario.addProperty("tarifa_hora", rs.getDouble("tarifa_hora"));
                     usuarios.add(usuario);
                 }
                 ctx.contentType("application/json").result(gson.toJson(usuarios));
             } catch (SQLException e) { e.printStackTrace(); ctx.status(500).result("{\"error\":\"Error en la base de datos\"}"); }
         });
 
-        // Obtener estadísticas
-        app.get("/api/admin/stats", ctx -> {
-            // TODO: Hacer consultas reales a la BD
-            JsonObject stats = new JsonObject();
-            stats.addProperty("ingresosTotales", "$15,250.00");
-            stats.addProperty("pedidosDia", 78);
-            stats.addProperty("nuevosClientes", 12);
-            stats.addProperty("empleadosActivos", 25);
-            ctx.contentType("application/json").result(gson.toJson(stats));
-        });
 
-        // Crear usuario (desde Admin)
+        app.get("/api/admin/stats", ctx -> {
+            JsonObject stats = new JsonObject();
+
+            try (Connection con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
+
+                // --- 1. Ingresos Totales (SUM de todos los pedidos) ---
+                String sqlIngresos = "SELECT SUM(total) AS ingresos FROM Pedidos";
+                try (PreparedStatement stmt = con.prepareStatement(sqlIngresos)) {
+                    ResultSet rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        // Formateamos como moneda (ej: $1,234.56)
+                        stats.addProperty("ingresosTotales",
+                                String.format("$%,.2f", rs.getDouble("ingresos")));
+                    } else {
+                        stats.addProperty("ingresosTotales", "$0.00");
+                    }
+                }
+
+                // --- 2. Pedidos del Día (COUNT de pedidos con fecha de hoy) ---
+                String sqlPedidosHoy = "SELECT COUNT(*) AS pedidos FROM Pedidos WHERE DATE(fecha_pedido) = CURDATE()";
+                try (PreparedStatement stmt = con.prepareStatement(sqlPedidosHoy)) {
+                    ResultSet rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        stats.addProperty("pedidosDia", rs.getInt("pedidos"));
+                    } else {
+                        stats.addProperty("pedidosDia", 0);
+                    }
+                }
+
+                // --- 3. Nuevos Clientes (COUNT de Usuarios registrados hoy) ---
+                // (Asumiendo que un "cliente nuevo" es un usuario nuevo registrado hoy)
+                String sqlNuevos = "SELECT COUNT(*) AS nuevos FROM Usuarios WHERE DATE(fecha_registro) = CURDATE()";
+                try (PreparedStatement stmt = con.prepareStatement(sqlNuevos)) {
+                    ResultSet rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        stats.addProperty("nuevosClientes", rs.getInt("nuevos"));
+                    } else {
+                        stats.addProperty("nuevosClientes", 0);
+                    }
+                }
+
+                // --- 4. Empleados Activos (COUNT de Usuarios con rol 'empleado') ---
+                String sqlEmpleados = "SELECT COUNT(*) AS activos FROM Usuarios WHERE rol = 'empleado'";
+                // Podrías añadir "AND estatus = 'Activo'" si tuvieras esa columna
+                try (PreparedStatement stmt = con.prepareStatement(sqlEmpleados)) {
+                    ResultSet rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        stats.addProperty("empleadosActivos", rs.getInt("activos"));
+                    } else {
+                        stats.addProperty("empleadosActivos", 0);
+                    }
+                }
+
+                // --- Enviar respuesta ---
+                ctx.contentType("application/json").result(gson.toJson(stats));
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                // Enviar un JSON de error si falla la BD
+                JsonObject errorStats = new JsonObject();
+                errorStats.addProperty("ingresosTotales", "Error DB");
+                errorStats.addProperty("pedidosDia", "Error DB");
+                errorStats.addProperty("nuevosClientes", "Error DB");
+                errorStats.addProperty("empleadosActivos", "Error DB");
+                ctx.status(500).contentType("application/json").result(gson.toJson(errorStats));
+            }
+        });
         app.post("/api/admin/crear-usuario", ctx -> {
             try {
                 JsonObject nuevoUsuario = gson.fromJson(ctx.body(), JsonObject.class);
@@ -377,6 +452,41 @@ public class ServerChafa {
                 ctx.status(400).result("{\"error\":\"Solicitud inválida\"}");
             }
         });
+        app.post("/api/admin/nominas/guardar", ctx -> {
+            try {
+                JsonObject nominaData = gson.fromJson(ctx.body(), JsonObject.class);
+                try (Connection con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
+                    // Usar INSERT ... ON DUPLICATE KEY UPDATE para manejar si ya existe
+                    String sql = "INSERT INTO Nominas (empleado_id, periodo, horas_normales, horas_extra, tarifa_base, sueldo_bruto, imss, isr, deducciones, sueldo_neto, notas, fecha_pago) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW()) " +
+                            "ON DUPLICATE KEY UPDATE " +
+                            "horas_normales=VALUES(horas_normales), horas_extra=VALUES(horas_extra), tarifa_base=VALUES(tarifa_base), sueldo_bruto=VALUES(sueldo_bruto), " +
+                            "imss=VALUES(imss), isr=VALUES(isr), deducciones=VALUES(deducciones), sueldo_neto=VALUES(sueldo_neto), notas=VALUES(notas), fecha_pago=NOW()";
 
-    } // Fin del main()
-} // Fin de la clase ServerChafa
+                    PreparedStatement stmt = con.prepareStatement(sql);
+                    stmt.setInt(1, nominaData.get("empleado_id").getAsInt());
+                    stmt.setString(2, nominaData.get("periodo").getAsString());
+                    stmt.setDouble(3, nominaData.get("horas_normales").getAsDouble());
+                    stmt.setDouble(4, nominaData.get("horas_extra").getAsDouble());
+                    stmt.setDouble(5, nominaData.get("tarifa_base").getAsDouble());
+                    stmt.setDouble(6, nominaData.get("sueldo_bruto").getAsDouble());
+                    stmt.setDouble(7, nominaData.get("imss").getAsDouble());
+                    stmt.setDouble(8, nominaData.get("isr").getAsDouble());
+                    stmt.setDouble(9, nominaData.get("deducciones").getAsDouble());
+                    stmt.setDouble(10, nominaData.get("sueldo_neto").getAsDouble());
+                    stmt.setString(11, nominaData.get("notas").getAsString());
+
+                    stmt.executeUpdate();
+                    ctx.status(201).result("{\"message\":\"Nómina guardada/actualizada\"}");
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    ctx.status(500).result("{\"error\":\"Error al guardar nómina en BD\"}");
+                }
+            } catch (Exception e) { // Error en JSON
+                e.printStackTrace();
+                ctx.status(400).result("{\"error\":\"Datos de nómina inválidos\"}");
+            }
+        });
+    }
+}
