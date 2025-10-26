@@ -174,9 +174,21 @@ public class FoodFlowLogin extends JFrame {
             // Manejo de códigos de estado específicos:
             if (resp.statusCode() == 200) {
                 // El backend devuelve 200 OK y el mensaje de éxito
-                String mensajeExito = resp.body().replace("\"", ""); // Limpiar comillas si devuelve solo el string
-                JOptionPane.showMessageDialog(this, "¡Inicio de sesión exitoso!\n" + mensajeExito, "Éxito",
+                String mensajeExito = resp.body().replace("\"", ""); // Limpia comillas si el backend devuelve un string plano
+
+                JOptionPane.showMessageDialog(this,
+                        "¡Inicio de sesión exitoso!\n" + mensajeExito,
+                        "Éxito",
                         JOptionPane.INFORMATION_MESSAGE);
+
+                // 🔹 Cierra la ventana de login actual
+                this.dispose();
+
+                SwingUtilities.invokeLater(() -> {
+                    SeleccionModo dashboard = new SeleccionModo(/* puedes pasar userId, token, etc. */);
+                    dashboard.setVisible(true);
+                });
+
             } else if (resp.statusCode() == 401) {
                 // 401 UNATHORIZED: Credenciales incorrectas (según tu AuthController)
                 JOptionPane.showMessageDialog(this, "Correo o contraseña incorrectos. Intenta de nuevo.",
