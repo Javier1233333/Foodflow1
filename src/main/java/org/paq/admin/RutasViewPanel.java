@@ -247,7 +247,7 @@ public class RutasViewPanel extends JPanel {
         gbc.gridx = 1;
         JComboBox<AdminDashboard.UserItem> fEmpleado = new JComboBox<>();
 
-        HttpRequest req = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/admin/usuarios")).GET().build();
+        HttpRequest req = HttpRequest.newBuilder().uri(URI.create("http://localhost:8081/api/admin/usuarios")).GET().build();
         HttpResponse<String> resp = context.httpClient.send(req, HttpResponse.BodyHandlers.ofString());
         if (resp.statusCode() == 200) {
             JsonArray usuarios = context.gson.fromJson(resp.body(), JsonArray.class);
@@ -277,7 +277,7 @@ public class RutasViewPanel extends JPanel {
             else nuevaRuta.addProperty("empleado_id", empleadoId);
 
             try {
-                HttpRequest postReq = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/admin/rutas/crear")).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(context.gson.toJson(nuevaRuta))).build();
+                HttpRequest postReq = HttpRequest.newBuilder().uri(URI.create("http://localhost:8081/api/admin/rutas/crear")).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(context.gson.toJson(nuevaRuta))).build();
                 HttpResponse<String> postResp = context.httpClient.send(postReq, HttpResponse.BodyHandlers.ofString());
                 if (postResp.statusCode() == 201) {
                     JOptionPane.showMessageDialog(dialog, "Ruta creada.", "Éxito", JOptionPane.INFORMATION_MESSAGE); dialog.dispose();

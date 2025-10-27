@@ -97,6 +97,7 @@ public class AdminDashboard extends JFrame {
         JPanel ayudaView = new AyudaViewPanel(context, this);
         JPanel ajustesUsuariosView = new AjustesUsuariosViewPanel(context);
         JPanel ajustesRutasView = new AjustesRutasViewPanel(context);
+        JPanel nominasHistoryView = new NominasHistoryViewPanel(context);
 
         // --- Añadimos las vistas al CardLayout ---
         mainContentPanel.add(menuView, "MENU");
@@ -144,6 +145,9 @@ public class AdminDashboard extends JFrame {
         PagosBtn.addActionListener(e -> cards.show(mainContentPanel, "NOMINAS"));
         sidebar.add(PagosBtn);
         sidebar.add(Box.createVerticalStrut(10));
+
+
+
 
         RoundedButton inventarioBtn = new RoundedButton("Inventario");
         inventarioBtn.addActionListener(e -> cards.show(mainContentPanel, "INVENTARIO"));
