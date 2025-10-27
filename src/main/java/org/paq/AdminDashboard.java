@@ -12,8 +12,7 @@ import java.awt.*;
 import java.net.URL;
 import java.net.http.HttpClient;
 
-// NOTA: Esta clase asume que AdminViewContext fue modificado para aceptar 'Long idUsuarioLong'
-//       como su último argumento, y que las vistas lo usan.
+
 
 public class AdminDashboard extends JFrame {
 
