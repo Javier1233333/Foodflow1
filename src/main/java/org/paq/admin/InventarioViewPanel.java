@@ -93,7 +93,7 @@ public class InventarioViewPanel extends JPanel {
         tableModel.setRowCount(0);
 
         try {
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/inventario")).GET().build();
+            HttpRequest req = HttpRequest.newBuilder().uri(URI.create("http://localhost:8081/api/inventario")).GET().build();
             HttpResponse<String> resp = context.httpClient.send(req, HttpResponse.BodyHandlers.ofString());
 
             if (resp.statusCode() == 200) {
@@ -333,7 +333,7 @@ public class InventarioViewPanel extends JPanel {
 
             try {
                 HttpRequest postReq = HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8080/api/inventario/crear"))
+                        .uri(URI.create("http://localhost:8081/api/inventario/crear"))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(context.gson.toJson(body)))
                         .build();

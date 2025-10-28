@@ -32,7 +32,7 @@ public class MainMenuView extends JPanel {
         kpiCardsPanel.setBorder(new EmptyBorder(20, 0, 20, 0));
 
         try {
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/admin/stats")).GET().build();
+            HttpRequest req = HttpRequest.newBuilder().uri(URI.create("http://localhost:8081/api/admin/stats")).GET().build();
             HttpResponse<String> resp = context.httpClient.send(req, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() == 200) {
                 JsonObject stats = context.gson.fromJson(resp.body(), JsonObject.class);
