@@ -1,5 +1,7 @@
 package org.paq;
 
+import org.paq.user.AyudaNoAuthPanel;
+
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -112,6 +114,19 @@ public class FoodFlowLogin extends JFrame {
         links.setBackground(COLOR_FONDO);
         LinkLabel forgot = new LinkLabel("Olvidé la contraseña");
         LinkLabel help   = new LinkLabel("Ayuda");
+        help.addMouseListener(new MouseAdapter() {
+            @Override
+        public void mouseClicked(MouseEvent e) {
+
+
+                Frame owner = (Frame) SwingUtilities.getWindowAncestor(help);
+
+                // Creamos la instancia del JDialog y lo mostramos
+                org.paq.user.AyudaNoAuthPanel helpDialog = new org.paq.user.AyudaNoAuthPanel(owner != null ? (JFrame) owner : new JFrame());
+
+                helpDialog.setVisible(true);
+        }
+    });
         links.add(forgot);
         links.add(help);
         links.setAlignmentX(Component.CENTER_ALIGNMENT);

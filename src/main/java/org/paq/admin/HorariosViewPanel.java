@@ -23,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class HorariosViewPanel extends JPanel {
 
@@ -44,12 +45,12 @@ public class HorariosViewPanel extends JPanel {
         this.setOpaque(false);
         this.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        // --- 1. Inicialización de la Tabla Semanal (Mejora de diseño) ---
+        // --- 1. Inicialización de la Tabla Semanal ---
+        // Nombres iniciales. Se actualizarán dinámicamente en actualizarTablaHorarios()
         String[] columnNames = {"Empleado", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"};
         this.tableModel = new DefaultTableModel(columnNames, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
             @Override public Class<?> getColumnClass(int columnIndex) {
-                // Para las columnas de horario, usamos String
                 return String.class;
             }
         };
@@ -58,7 +59,6 @@ public class HorariosViewPanel extends JPanel {
         scheduleTable.setFont(UIConstants.BASE.deriveFont(14f).deriveFont(Font.BOLD));
         scheduleTable.setRowHeight(50);
 
-        // Estilo de renderizado para las celdas de horario
         setupTableRenderer(scheduleTable);
 
         JScrollPane scrollPane = new JScrollPane(scheduleTable);
@@ -72,7 +72,6 @@ public class HorariosViewPanel extends JPanel {
         JPanel addHorarioPanel = createAddHorarioPanel();
         topPanel.add(addHorarioPanel, BorderLayout.CENTER);
 
-        // Calendario JCalendar (Derecha-Superior) - Usado para seleccionar la SEMANA
         context.scheduleCalendar.setBorder(BorderFactory.createLineBorder(UIConstants.BORDE_SUAVE));
         JPanel calendarPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         calendarPanel.setOpaque(false);
@@ -83,20 +82,17 @@ public class HorariosViewPanel extends JPanel {
         this.add(scrollPane, BorderLayout.CENTER);
 
         // --- 3. Conector (Listener) ---
-        // El calendario ahora refresca la tabla SEMANAL
         context.scheduleCalendar.addPropertyChangeListener("calendar", evt -> {
             actualizarTablaHorarios();
         });
 
         // 4. Carga inicial
         cargarEmpleados();
-        // La tabla se llenará inicialmente vacía o con un placeholder hasta seleccionar un empleado
         actualizarTablaHorarios();
     }
 
     // --- ESTILO Y RENDERIZADO DE LA TABLA ---
     private void setupTableRenderer(JTable table) {
-        // Renderizador para centrar el contenido y dar estilo basado en el contenido
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -104,16 +100,14 @@ public class HorariosViewPanel extends JPanel {
 
                 setHorizontalAlignment(SwingConstants.CENTER);
 
-                if (column > 0 && value != null) { // Columnas de horario
+                if (column > 0 && value != null) {
                     String text = value.toString();
                     if (text.contains("00:00 - 00:00 (Descanso)")) {
-                        // Estilo para descanso
-                        c.setBackground(new Color(255, 230, 230)); // Fondo rojo suave
-                        c.setForeground(new Color(150, 0, 0)); // Texto rojo oscuro
+                        c.setBackground(new Color(255, 230, 230));
+                        c.setForeground(new Color(150, 0, 0));
                     } else if (text.contains(" - ")) {
-                        // Estilo para horario laboral
-                        c.setBackground(new Color(230, 255, 230)); // Fondo verde suave
-                        c.setForeground(new Color(0, 100, 0)); // Texto verde oscuro
+                        c.setBackground(new Color(230, 255, 230));
+                        c.setForeground(new Color(0, 100, 0));
                     } else if (text.contains("Sin asignar")) {
                         c.setBackground(Color.WHITE);
                         c.setForeground(Color.GRAY);
@@ -123,7 +117,7 @@ public class HorariosViewPanel extends JPanel {
                         c.setForeground(Color.BLACK);
                     }
                 } else if (column == 0) {
-                    c.setBackground(UIConstants.VERDE_700); // Columna de empleado
+                    c.setBackground(UIConstants.VERDE_700);
                     c.setForeground(Color.BLACK);
                 }
 
@@ -131,7 +125,6 @@ public class HorariosViewPanel extends JPanel {
             }
         };
 
-        // Aplicar el renderizador a todas las columnas
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
         }
@@ -140,7 +133,6 @@ public class HorariosViewPanel extends JPanel {
     // --- MÉTODOS DE VISTA Y LÓGICA ---
 
     private JPanel createAddHorarioPanel() {
-        // ... (Tu código de creación de panel, con la UI del modal) ...
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
@@ -162,15 +154,14 @@ public class HorariosViewPanel extends JPanel {
         fEmpleado.addItem(new AdminDashboard.UserItem(0, "Cargando Empleados...", 0.0));
         fEmpleado.setEnabled(false);
 
-        // Listener para el cambio de empleado (activa la carga semanal)
         fEmpleado.addActionListener(e -> {
             AdminDashboard.UserItem selected = (AdminDashboard.UserItem) fEmpleado.getSelectedItem();
             if (selected != null && selected.getId() > 0) {
-                selectedEmployeeId = (long) selected.getId(); // Actualiza el ID
+                selectedEmployeeId = (long) selected.getId();
             } else {
                 selectedEmployeeId = null;
             }
-            actualizarTablaHorarios(); // Refresca la tabla semanalmente para el nuevo empleado
+            actualizarTablaHorarios();
         });
 
         panel.add(fEmpleado, gbc);
@@ -203,9 +194,6 @@ public class HorariosViewPanel extends JPanel {
         return panel;
     }
 
-    /**
-     * Carga la lista de empleados de forma ASÍNCRONA.
-     */
     private void cargarEmpleados() {
         fEmpleado.removeAllItems();
         fEmpleado.addItem(new AdminDashboard.UserItem(0, "Cargando...", 0.0));
@@ -223,7 +211,6 @@ public class HorariosViewPanel extends JPanel {
                                 for (JsonElement userElement : usuarios) {
                                     JsonObject usuario = userElement.getAsJsonObject();
 
-                                    // Filtrar a todos los que NO son ADMIN
                                     String role = usuario.has("rol") ? usuario.get("rol").getAsString() : "";
                                     if (!"ADMIN".equalsIgnoreCase(role)) {
                                         fEmpleado.addItem(new AdminDashboard.UserItem(
@@ -254,10 +241,6 @@ public class HorariosViewPanel extends JPanel {
                     return null;
                 });
     }
-
-    /**
-     * Guarda el horario de forma ASÍNCRONA con validación.
-     */
     private void guardarHorario(JComboBox<AdminDashboard.UserItem> fEmpleado, String entrada, String salida, String estatus) {
         AdminDashboard.UserItem empleado = (AdminDashboard.UserItem) fEmpleado.getSelectedItem();
         Date fechaSeleccionada = context.scheduleCalendar.getDate();
@@ -274,7 +257,8 @@ public class HorariosViewPanel extends JPanel {
         }
 
         JsonObject payload = new JsonObject();
-        payload.addProperty("empleado_id", empleado.getId());
+        // Conversión explícita a long (corrección de tipado)
+        payload.addProperty("empleado_id", (long) empleado.getId());
         payload.addProperty("fecha", fechaFormateada);
         payload.addProperty("entrada", entrada);
         payload.addProperty("salida", salida);
@@ -292,24 +276,40 @@ public class HorariosViewPanel extends JPanel {
                         SwingUtilities.invokeLater(() -> {
                             if (resp.statusCode() == 201) {
                                 JOptionPane.showMessageDialog(this, "Horario guardado.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                                // Solo refrescar si el empleado guardado es el mismo que está seleccionado
                                 if (selectedEmployeeId != null && selectedEmployeeId.equals((long)empleado.getId())) {
                                     actualizarTablaHorarios();
                                 }
                             } else {
-                                JOptionPane.showMessageDialog(this, "Error al guardar:\n" + resp.body(), "Error", JOptionPane.ERROR_MESSAGE);
+                                // 💡 MEJORA: Capturamos el código de estado y el cuerpo del error
+                                String errorBody = resp.body().isEmpty() ? "No hay detalles del error en la respuesta." : resp.body();
+
+                                String errorMessage = String.format(
+                                        "Error al guardar (HTTP %d):\n\nEl servidor respondió con:\n%s",
+                                        resp.statusCode(),
+                                        errorBody
+                                );
+
+                                JOptionPane.showMessageDialog(this, errorMessage, "Error del Servidor", JOptionPane.ERROR_MESSAGE);
                             }
                         });
                     })
                     .exceptionally(ex -> {
                         SwingUtilities.invokeLater(() -> {
-                            JOptionPane.showMessageDialog(this, "Error de conexión con el servidor.", "Error", JOptionPane.ERROR_MESSAGE);
+                            // 💡 MEJORA: Detalle en caso de fallo de conexión/red
+                            String detailedError = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                            JOptionPane.showMessageDialog(this,
+                                    "Fallo de conexión o red.\nAsegúrate de que el servidor (puerto 8081) esté corriendo.\nDetalle: " + detailedError,
+                                    "Error de Conexión",
+                                    JOptionPane.ERROR_MESSAGE
+                            );
+                            ex.printStackTrace();
                         });
                         return null;
                     });
         } catch (Exception ex) {
+            // 💡 MEJORA: Error al construir la URL/Petición
+            JOptionPane.showMessageDialog(this, "Error interno al construir la petición:\n" + ex.getMessage(), "Error Interno", JOptionPane.ERROR_MESSAGE);
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error interno al crear la petición.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -324,18 +324,47 @@ public class HorariosViewPanel extends JPanel {
             return;
         }
 
-        tableModel.addRow(new Object[]{fEmpleado.getSelectedItem().toString(), "Cargando...", "Cargando...", "Cargando...", "Cargando...", "Cargando...", "Cargando...", "Cargando..."});
-
-        // Calculamos la fecha de inicio de la semana (LUNES) a partir de la fecha seleccionada
+        // --- 1. CÁLCULO DE FECHAS Y ACTUALIZACIÓN DEL HEADER ---
         Calendar cal = Calendar.getInstance();
         cal.setTime(context.scheduleCalendar.getDate());
-        // Ajustamos el calendario al LUNES de esa semana
-        cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        String mondayDate = dateFormat.format(cal.getTime());
+        // 1. FORZAMOS el inicio de la semana a LUNES
+        cal.setFirstDayOfWeek(Calendar.MONDAY);
 
-        // El nuevo endpoint requiere: {empId} y {fechaInicioSemana}
+        // 2. Aplicamos la lógica para retroceder al Lunes de la semana actual (corrige el desfase regional)
+        int today = cal.get(Calendar.DAY_OF_WEEK);
+        if (today == Calendar.SUNDAY) {
+            cal.add(Calendar.DAY_OF_YEAR, -6);
+        } else {
+            cal.add(Calendar.DAY_OF_YEAR, Calendar.MONDAY - today);
+        }
+        // 'cal' es ahora la fecha del Lunes correcto
+
+        // Formateador para el encabezado (Ej: LUN 28)
+        SimpleDateFormat headerDateFormat = new SimpleDateFormat("EEE d", new Locale("es", "ES"));
+        SimpleDateFormat apiDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String mondayDate = apiDateFormat.format(cal.getTime());
+
+        List<String> newColumnNames = new ArrayList<>();
+        newColumnNames.add("Empleado");
+
+        // Clonamos para iterar y no modificar la fecha base para la llamada a la API
+        Calendar headerCal = (Calendar) cal.clone();
+        for (int i = 0; i < 7; i++) {
+            newColumnNames.add(headerDateFormat.format(headerCal.getTime()).toUpperCase());
+            headerCal.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        // Actualizar el header de la tabla y aplicar la carga en el EDT
+        SwingUtilities.invokeLater(() -> {
+            tableModel.setColumnIdentifiers(newColumnNames.toArray());
+            setupTableRenderer(scheduleTable);
+
+            // Mostrar mensaje de carga
+            tableModel.addRow(new Object[]{fEmpleado.getSelectedItem().toString(), "Cargando...", "Cargando...", "Cargando...", "Cargando...", "Cargando...", "Cargando...", "Cargando..."});
+        });
+
+        // --- 2. LLAMADA ASÍNCRONA A LA API ---
         String endpoint = String.format("%s/horarios-semana/%d/%s",
                 BASE_URL,
                 selectedEmployeeId,
@@ -350,17 +379,15 @@ public class HorariosViewPanel extends JPanel {
 
                         if (resp.statusCode() == 200) {
                             try {
-                                // El backend debe devolver un arreglo de 7 elementos (Lunes a Domingo)
                                 JsonArray horariosSemana = context.gson.fromJson(resp.body(), JsonArray.class);
 
                                 List<Object> rowData = new ArrayList<>();
-                                rowData.add(fEmpleado.getSelectedItem().toString()); // Columna 1: Empleado
+                                rowData.add(fEmpleado.getSelectedItem().toString());
 
                                 for (JsonElement diaEl : horariosSemana) {
                                     if (diaEl.isJsonObject()) {
                                         JsonObject horarioDia = diaEl.getAsJsonObject();
 
-                                        // Formato de visualización mejorado
                                         String estatus = horarioDia.get("estatus").getAsString();
                                         String entrada = horarioDia.get("entrada").getAsString();
                                         String salida = horarioDia.get("salida").getAsString();

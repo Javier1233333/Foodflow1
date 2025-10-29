@@ -2,6 +2,7 @@ package org.paq;
 
 import com.google.gson.Gson;
 import org.paq.UI.RoundedButton;
+import org.paq.UI.Sidebarbtn;
 import org.paq.UI.UIConstants;
 import org.paq.admin.*;
 import org.paq.admin.AdminViewContext;
@@ -130,17 +131,17 @@ public class AdminDashboard extends JFrame {
         sidebar.add(Box.createVerticalStrut(30));
 
         // --- Botones del Menú ---
-        RoundedButton RutasBtn = new RoundedButton("Tablero Rutas");
+        Sidebarbtn RutasBtn = new Sidebarbtn("Tablero Rutas");
         RutasBtn.addActionListener(e -> cards.show(mainContentPanel, "RUTAS"));
         sidebar.add(RutasBtn);
         sidebar.add(Box.createVerticalStrut(10));
 
-        RoundedButton HorarioBtn = new RoundedButton("Horarios de empleados");
+        Sidebarbtn HorarioBtn = new Sidebarbtn("Horarios de empleados");
         HorarioBtn.addActionListener(e -> cards.show(mainContentPanel, "HORARIOS"));
         sidebar.add(HorarioBtn);
         sidebar.add(Box.createVerticalStrut(10));
 
-        RoundedButton PagosBtn = new RoundedButton("Pagos y Nominas");
+        Sidebarbtn PagosBtn = new Sidebarbtn("Pagos y Nominas");
         PagosBtn.addActionListener(e -> cards.show(mainContentPanel, "NOMINAS"));
         sidebar.add(PagosBtn);
         sidebar.add(Box.createVerticalStrut(10));
@@ -148,7 +149,7 @@ public class AdminDashboard extends JFrame {
 
 
 
-        RoundedButton inventarioBtn = new RoundedButton("Inventario");
+        Sidebarbtn inventarioBtn = new Sidebarbtn("Inventario");
         inventarioBtn.addActionListener(e -> cards.show(mainContentPanel, "INVENTARIO"));
         sidebar.add(inventarioBtn);
         sidebar.add(Box.createVerticalStrut(10));
